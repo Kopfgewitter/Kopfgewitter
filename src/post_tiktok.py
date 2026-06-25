@@ -5,9 +5,9 @@ from pathlib import Path
 TIKTOK_ACCESS_TOKEN = os.environ["TIKTOK_ACCESS_TOKEN"]
 
 def generate_caption(text_data):
-    lines = [l for l in text_data["text"].split('\n') if l.strip()]
-    hook = lines[0] if lines else ""
-    caption = f"{hook}\n\n#kopfgewitter #overthinking #herzschmerz #gefühle #deutsch #liebe #schmerz #fyp"
+    text = text_data["text"]
+    hashtags = "#kopfgewitter #fürdich #fyp #gefühle #liebe #herzschmerz #overthinking #schmerz #deutsch #emotional"
+    caption = f"{text}\n\n{hashtags}"
     return caption[:2200]
 
 def post_to_tiktok(video_path, caption):
