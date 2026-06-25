@@ -6,7 +6,7 @@ TIKTOK_ACCESS_TOKEN = os.environ["TIKTOK_ACCESS_TOKEN"]
 
 def generate_caption(text_data):
     text = text_data["text"]
-    hashtags = "#kopfgewitter #fürdich #fyp #gefühle #liebe #herzschmerz #overthinking #schmerz #deutsch #emotional"
+    hashtags = "#kopfgewitter #fürdich #fyp #gefühle #herzschmerz"
     caption = f"{text}\n\n{hashtags}"
     return caption[:2200]
 
