@@ -16,16 +16,11 @@ generate_voice(text_data["text"], audio_path)
 duration = get_audio_duration(audio_path)
 print(f"⏱️ Dauer: {duration:.1f}s")
 
-from generate_subtitles import text_to_subtitle_chunks, generate_ass_subtitles
-chunks = text_to_subtitle_chunks(text_data["text"], duration)
-subtitles_path = f"output/subtitles_{today}.ass"
-generate_ass_subtitles(chunks, subtitles_path)
-
 from create_video import download_background_video, create_video
 bg_path = f"output/background_{today}.mp4"
 download_background_video(bg_path, duration)
 final_path = f"output/final_{today}.mp4"
-create_video(bg_path, audio_path, subtitles_path, final_path, duration)
+create_video(bg_path, audio_path, final_path, duration)
 
 from post_tiktok import generate_caption, post_to_tiktok
 caption = generate_caption(text_data)
