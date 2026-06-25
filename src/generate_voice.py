@@ -9,7 +9,7 @@ def generate_voice(text, output_path):
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
     headers = {"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"}
     payload = {"text": text, "model_id": "eleven_multilingual_v2",
-        "voice_settings": {"stability": 0.45, "similarity_boost": 0.80, "style": 0.35, "use_speaker_boost": True}}
+        "voice_settings": {"stability": 0.30, "similarity_boost": 0.85, "style": 0.75, "use_speaker_boost": True}}
     print("🎙️ Generiere Voiceover...")
     r = requests.post(url, headers=headers, json=payload)
     if r.status_code != 200:
