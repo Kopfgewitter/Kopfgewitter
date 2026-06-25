@@ -54,14 +54,14 @@ def download_background_video(output_path, duration):
     with open(concat_file, "w") as f:
         for path in clip_paths:
             f.write(f"file '{path}'\n")
-    cmd = [
-        "ffmpeg", "-y",
-        "-f", "concat", "-safe", "0", "-i", concat_file,
-        "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-        "-an", "-t", str(duration + 5),
-        output_path
-    ]
+cmd = [
+    "ffmpeg", "-y",
+    "-f", "concat", "-safe", "0", "-i", concat_file,
+    "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30",
+    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+    "-an", "-t", str(duration + 5),
+    output_path
+]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print("⚠️ Concat fehlgeschlagen, nutze erstes Video...")
