@@ -5,20 +5,20 @@ from pathlib import Path
 TIKTOK_ACCESS_TOKEN = os.environ["TIKTOK_ACCESS_TOKEN"]
 
 KATEGORIE_HASHTAGS = {
-    "einseitige_liebe":        "#liebeskummer #herzschmerz #beziehung #gedankenwelt #kopfgewitter",
-    "verlust_und_loslassen":   "#loslassen #herzschmerz #liebeskummer #wahreworte #kopfgewitter",
-    "modernes_dating":         "#liebeskummer #dating #beziehung #herzschmerz #kopfgewitter",
-    "selbstverlust":           "#selbstliebe #gedanken #wahreworte #beziehung #kopfgewitter",
-    "einsamkeit_und_overthinking": "#gedankenkarussell #einsamkeit #gedanken #wahreworte #kopfgewitter",
-    "unsichtbarkeit":          "#einsamkeit #herzschmerz #gedankenwelt #wahreworte #kopfgewitter",
-    "toxische_muster":         "#toxisch #liebeskummer #herzschmerz #beziehung #kopfgewitter",
-    "heilung_und_wahrheit":    "#selbstliebe #loslassen #wahreworte #gedanken #kopfgewitter",
+    "einseitige_liebe":            "#liebeskummer #herzschmerz #zitate #wahreworte #gefühle",
+    "verlust_und_loslassen":       "#liebeskummer #trennung #zitate #vermissen #herzschmerz",
+    "modernes_dating":             "#liebeskummer #beziehung #zitate #herzschmerz #wahreworte",
+    "selbstverlust":               "#gefühle #zitate #wahreworte #herzschmerz #sprüche",
+    "einsamkeit_und_overthinking": "#gefühle #zitate #traurig #wahreworte #sprüche",
+    "unsichtbarkeit":              "#gefühle #herzschmerz #zitate #traurig #wahreworte",
+    "toxische_muster":             "#liebeskummer #beziehung #zitate #herzschmerz #trennung",
+    "heilung_und_wahrheit":        "#wahreworte #zitate #gefühle #sprüche #herzschmerz",
 }
 
 def generate_caption(text_data):
     text = text_data["text"]
     kategorie = text_data.get("kategorie", "")
-    hashtags = KATEGORIE_HASHTAGS.get(kategorie, "#herzschmerz #gefühle #gedanken #wahreworte #kopfgewitter")
+    hashtags = KATEGORIE_HASHTAGS.get(kategorie, "#liebeskummer #herzschmerz #zitate #gefühle #wahreworte")
     caption = f"{text}\n\n{hashtags}"
     return caption[:2200]
 
