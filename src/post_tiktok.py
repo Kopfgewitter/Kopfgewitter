@@ -4,9 +4,21 @@ from pathlib import Path
 
 TIKTOK_ACCESS_TOKEN = os.environ["TIKTOK_ACCESS_TOKEN"]
 
+KATEGORIE_HASHTAGS = {
+    "einseitige_liebe":        "#liebeskummer #herzschmerz #beziehung #gedankenwelt #kopfgewitter",
+    "verlust_und_loslassen":   "#loslassen #herzschmerz #liebeskummer #wahreworte #kopfgewitter",
+    "modernes_dating":         "#liebeskummer #dating #beziehung #herzschmerz #kopfgewitter",
+    "selbstverlust":           "#selbstliebe #gedanken #wahreworte #beziehung #kopfgewitter",
+    "einsamkeit_und_overthinking": "#gedankenkarussell #einsamkeit #gedanken #wahreworte #kopfgewitter",
+    "unsichtbarkeit":          "#einsamkeit #herzschmerz #gedankenwelt #wahreworte #kopfgewitter",
+    "toxische_muster":         "#toxisch #liebeskummer #herzschmerz #beziehung #kopfgewitter",
+    "heilung_und_wahrheit":    "#selbstliebe #loslassen #wahreworte #gedanken #kopfgewitter",
+}
+
 def generate_caption(text_data):
     text = text_data["text"]
-    hashtags = "#kopfgewitter #fürdich #fyp #gefühle #herzschmerz"
+    kategorie = text_data.get("kategorie", "")
+    hashtags = KATEGORIE_HASHTAGS.get(kategorie, "#herzschmerz #gefühle #gedanken #wahreworte #kopfgewitter")
     caption = f"{text}\n\n{hashtags}"
     return caption[:2200]
 
