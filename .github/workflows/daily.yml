@@ -38,3 +38,11 @@ jobs:
           name: video-output-${{ github.run_number }}
           path: output/
           retention-days: 7
+      - name: Cache speichern
+        if: always()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add used_videos.json || true
+          git diff --staged --quiet || git commit -m "Update video cache [skip ci]"
+          git push || true
