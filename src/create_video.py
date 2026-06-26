@@ -3,16 +3,17 @@ from datetime import datetime
 from pathlib import Path
 
 PEXELS_API_KEY = os.environ["PEXELS_API_KEY"]
+PIXABAY_API_KEY = os.environ["PIXABAY_API_KEY"]
 CACHE_PATH = "used_videos.json"
 
 VIDEO_TERMS = [
-    "woman crying emotional close up",
+    "woman crying emotional",
     "person walking alone rain",
     "couple breaking up emotional",
     "woman looking window sad",
-    "man emotional breakdown crying",
+    "man emotional breakdown",
     "person sitting alone night",
-    "emotional woman portrait tears",
+    "emotional woman portrait",
     "cinematic emotional people",
     "lonely person dark room",
     "woman thinking night window",
@@ -31,20 +32,58 @@ def load_cache():
 
 def save_cache(cache):
     with open(CACHE_PATH, "w") as f:
-        json.dump(cache[-50:], f, indent=2)
+        json.dump(cache[-100:], f, indent=2)
+
+def fetch_pexels(term, duration):
+    headers = {"Authorization": PEXELS_API_KEY}
+    r = requests.get("https://api.pexels.com/videos/search", headers=headers,
+        params={"query": term, "orientation": "portrait", "size": "medium", "per_page": 15})
+    if r.status_code != 200:
+        return []
+    videos = []
+    for v in r.json().get("videos", []):
+        if v.get("duration", 0) >= duration:
+            files = sorted(v["video_files"], key=lambda x: x.get("width", 0), reverse=True)
+            videos.append({
+                "id": f"pexels_{v['id']}",
+                "url": files[0]["link"],
+                "duration": v["duration"],
+                "source": "pexels"
+            })
+    return videos
+
+def fetch_pixabay(term, duration):
+    r = requests.get("https://pixabay.com/api/videos/", params={
+        "key": PIXABAY_API_KEY,
+        "q": term,
+        "video_type": "film",
+        "per_page": 15,
+        "safesearch": "true"
+    })
+    if r.status_code != 200:
+        return []
+    videos = []
+    for v in r.json().get("hits", []):
+        if v.get("duration", 0) >= duration:
+            url = v["videos"]["medium"]["url"]
+            if url:
+                videos.append({
+                    "id": f"pixabay_{v['id']}",
+                    "url": url,
+                    "duration": v["duration"],
+                    "source": "pixabay"
+                })
+    return videos
 
 def download_background_video(output_path, duration):
     cache = load_cache()
     all_videos = []
-    terms = random.sample(VIDEO_TERMS, min(3, len(VIDEO_TERMS)))
 
-    headers = {"Authorization": PEXELS_API_KEY}
+    terms = random.sample(VIDEO_TERMS, min(3, len(VIDEO_TERMS)))
     for term in terms:
         print(f"🎬 Suche Video: '{term}'")
-        r = requests.get("https://api.pexels.com/videos/search", headers=headers,
-            params={"query": term, "orientation": "portrait", "size": "medium", "per_page": 15})
-        if r.status_code == 200:
-            all_videos.extend(r.json().get("videos", []))
+        all_videos.extend(fetch_pexels(term, duration))
+        all_videos.extend(fetch_pixabay(term, duration))
 
     if not all_videos:
         raise Exception("Keine Videos gefunden")
@@ -53,35 +92,28 @@ def download_background_video(output_path, duration):
     seen_ids = set()
     unique_videos = []
     for v in all_videos:
-        if str(v["id"]) not in seen_ids:
-            seen_ids.add(str(v["id"]))
+        if v["id"] not in seen_ids:
+            seen_ids.add(v["id"])
             unique_videos.append(v)
 
-    print(f"📦 {len(unique_videos)} einzigartige Videos gefunden")
+    print(f"📦 {len(unique_videos)} einzigartige Videos gefunden (Pexels + Pixabay)")
 
     # Cache filtern
-    fresh_videos = [v for v in unique_videos if str(v["id"]) not in cache]
+    fresh_videos = [v for v in unique_videos if v["id"] not in cache]
     if not fresh_videos:
-        print("⚠️ Alle Videos schon genutzt – Cache wird geleert")
+        print("⚠️ Cache geleert")
         cache = []
         fresh_videos = unique_videos
 
-    # Passende Länge filtern
-    suitable = [v for v in fresh_videos if v.get("duration", 0) >= duration]
-    if not suitable:
-        suitable = sorted(fresh_videos, key=lambda x: x.get("duration", 0), reverse=True)
-
     # Zufällig aus Top 10 wählen
-    video = random.choice(suitable[:10])
+    video = random.choice(fresh_videos[:10])
 
     # Cache updaten
-    cache.append(str(video["id"]))
+    cache.append(video["id"])
     save_cache(cache)
 
-    files = sorted(video["video_files"], key=lambda x: x.get("width", 0), reverse=True)
-    video_url = files[0]["link"]
-    print(f"⬇️ Lade Video (ID: {video['id']}, {video.get('duration')}s)...")
-    resp = requests.get(video_url, stream=True)
+    print(f"⬇️ Lade Video ({video['source']}, {video['duration']}s)...")
+    resp = requests.get(video["url"], stream=True)
     with open(output_path, "wb") as f:
         for chunk in resp.iter_content(chunk_size=8192):
             f.write(chunk)
