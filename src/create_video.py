@@ -1,8 +1,9 @@
-import os, subprocess, requests, random
+import os, subprocess, requests, random, json
 from datetime import datetime
 from pathlib import Path
 
 PEXELS_API_KEY = os.environ["PEXELS_API_KEY"]
+CACHE_PATH = "output/used_videos.json"
 
 VIDEO_TERMS = [
     "woman crying emotional close up",
@@ -13,26 +14,76 @@ VIDEO_TERMS = [
     "person sitting alone night",
     "emotional woman portrait tears",
     "cinematic emotional people",
+    "lonely person dark room",
+    "woman thinking night window",
+    "sad man sitting alone",
+    "emotional couple distance",
+    "person crying bedroom",
+    "melancholic woman portrait",
+    "heartbreak emotional scene",
 ]
 
+def load_cache():
+    if Path(CACHE_PATH).exists():
+        with open(CACHE_PATH) as f:
+            return json.load(f)
+    return []
+
+def save_cache(cache):
+    Path("output").mkdir(exist_ok=True)
+    with open(CACHE_PATH, "w") as f:
+        json.dump(cache[-50:], f, indent=2)  # Max 50 einträge behalten
+
 def download_background_video(output_path, duration):
-    term = random.choice(VIDEO_TERMS)
-    print(f"🎬 Suche Video: '{term}'")
+    cache = load_cache()
+    
+    # Mehrere Suchbegriffe gleichzeitig abfragen (Option 4)
+    all_videos = []
+    terms = random.sample(VIDEO_TERMS, min(3, len(VIDEO_TERMS)))
+    
     headers = {"Authorization": PEXELS_API_KEY}
-    r = requests.get("https://api.pexels.com/videos/search", headers=headers,
-        params={"query": term, "orientation": "portrait", "size": "medium", "per_page": 15})
-    if r.status_code != 200:
-        raise Exception(f"Pexels Fehler: {r.status_code}")
-    videos = r.json().get("videos", [])
-    if not videos:
+    for term in terms:
+        print(f"🎬 Suche Video: '{term}'")
+        r = requests.get("https://api.pexels.com/videos/search", headers=headers,
+            params={"query": term, "orientation": "portrait", "size": "medium", "per_page": 15})
+        if r.status_code == 200:
+            all_videos.extend(r.json().get("videos", []))
+
+    if not all_videos:
         raise Exception("Keine Videos gefunden")
-    suitable = [v for v in videos if v.get("duration", 0) >= duration]
+
+    # Duplikate aus Pool entfernen
+    seen_ids = set()
+    unique_videos = []
+    for v in all_videos:
+        if str(v["id"]) not in seen_ids:
+            seen_ids.add(str(v["id"]))
+            unique_videos.append(v)
+
+    print(f"📦 {len(unique_videos)} einzigartige Videos gefunden")
+
+    # Cache filtern (Option 2)
+    fresh_videos = [v for v in unique_videos if str(v["id"]) not in cache]
+    if not fresh_videos:
+        print("⚠️ Alle Videos schon genutzt – Cache wird geleert")
+        cache = []
+        fresh_videos = unique_videos
+
+    # Passende Länge filtern
+    suitable = [v for v in fresh_videos if v.get("duration", 0) >= duration]
     if not suitable:
-        suitable = sorted(videos, key=lambda x: x.get("duration", 0), reverse=True)
-    video = suitable[0]
+        suitable = sorted(fresh_videos, key=lambda x: x.get("duration", 0), reverse=True)
+
+    # Zufällig aus Top 10 wählen
+    video = random.choice(suitable[:10])
+
+    # Cache updaten
+    cache.append(str(video["id"]))
+    save_cache(cache)
+
     files = sorted(video["video_files"], key=lambda x: x.get("width", 0), reverse=True)
     video_url = files[0]["link"]
-    print(f"⬇️ Lade Video ({video.get('duration')}s)...")
+    print(f"⬇️ Lade Video (ID: {video['id']}, {video.get('duration')}s)...")
     resp = requests.get(video_url, stream=True)
     with open(output_path, "wb") as f:
         for chunk in resp.iter_content(chunk_size=8192):
@@ -72,5 +123,5 @@ if __name__ == "__main__":
         f"output/background_{today}.mp4",
         f"output/voice_{today}.mp3",
         f"output/final_{today}.mp4",
-        duration
+        today
     )
