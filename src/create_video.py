@@ -120,13 +120,76 @@ def download_background_video(output_path, duration):
     print(f"✅ Hintergrundvideo: {output_path}")
     return output_path
 
-def create_video(background_path, audio_path, output_path, duration):
+def build_subtitle_filter(timestamps, total_duration, fontsize=52):
+    """Baut FFmpeg drawtext Filter für synchrone Untertitel"""
+    filters = []
+
+    for i, entry in enumerate(timestamps):
+        text = entry["text"]
+        start = entry.get("start")
+
+        # Fallback wenn kein Timestamp
+        if start is None:
+            start = (i / len(timestamps)) * total_duration
+
+        # Ende = nächster Satz oder total_duration
+        if i + 1 < len(timestamps):
+            next_start = timestamps[i + 1].get("start")
+            if next_start is None:
+                next_start = ((i + 1) / len(timestamps)) * total_duration
+            end = next_start
+        else:
+            end = total_duration
+
+        # Text escapen für FFmpeg
+        safe_text = text.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
+
+        # Zeilenumbruch bei langen Sätzen (>30 Zeichen)
+        if len(safe_text) > 30:
+            words = safe_text.split()
+            mid = len(words) // 2
+            safe_text = " ".join(words[:mid]) + "\n" + " ".join(words[mid:])
+
+        filter_str = (
+            f"drawtext=text='{safe_text}'"
+            f":fontsize={fontsize}"
+            f":fontcolor=white"
+            f":font='Liberation Sans'"
+            f":borderw=3"
+            f":bordercolor=black"
+            f":x=(w-text_w)/2"
+            f":y=(h*0.75)-text_h/2"
+            f":enable='between(t,{start},{end})'"
+        )
+        filters.append(filter_str)
+
+    return ",".join(filters)
+
+def create_video(background_path, audio_path, output_path, duration, timestamps_path=None):
     print("🎞️ Erstelle finales Video...")
+
+    # Timestamps laden
+    timestamps = []
+    if timestamps_path and Path(timestamps_path).exists():
+        with open(timestamps_path, encoding="utf-8") as f:
+            timestamps = json.load(f)
+        print(f"✅ {len(timestamps)} Satz-Timestamps geladen")
+
+    # Video Filter bauen
+    vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=brightness=-0.05:contrast=1.1"
+
+    if timestamps:
+        subtitle_filter = build_subtitle_filter(timestamps, duration)
+        vf += "," + subtitle_filter
+        print("✅ Synchrone Untertitel eingebaut")
+    else:
+        print("⚠️ Keine Timestamps — kein Untertitel")
+
     cmd = [
         "ffmpeg", "-y",
         "-stream_loop", "-1", "-i", background_path,
         "-i", audio_path,
-        "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=brightness=-0.05:contrast=1.1",
+        "-vf", vf,
         "-map", "0:v", "-map", "1:a",
         "-c:v", "libx264", "-preset", "fast", "-crf", "23",
         "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
@@ -135,10 +198,12 @@ def create_video(background_path, audio_path, output_path, duration):
         "-pix_fmt", "yuv420p",
         output_path
     ]
+
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print(result.stderr[-3000:])
         raise Exception("FFmpeg fehlgeschlagen")
+
     size = Path(output_path).stat().st_size / (1024 * 1024)
     print(f"✅ Video: {output_path} ({size:.1f} MB)")
     return output_path
@@ -152,5 +217,6 @@ if __name__ == "__main__":
         f"output/background_{today}.mp4",
         f"output/voice_{today}.mp3",
         f"output/final_{today}.mp4",
-        duration
+        duration,
+        timestamps_path=f"output/voice_{today}_timestamps.json"
     )
