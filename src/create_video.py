@@ -3,21 +3,24 @@ from datetime import datetime
 from pathlib import Path
 
 PEXELS_API_KEY = os.environ["PEXELS_API_KEY"]
-CACHE_PATH = "output/used_photos.json"
+CACHE_PATH = "used_videos.json"
 
-PHOTO_TERMS = [
-    "woman crying emotional",
-    "person alone night window",
-    "sad man sitting",
-    "emotional portrait tears",
-    "lonely person dark",
-    "heartbreak couple distance",
-    "person thinking night",
+VIDEO_TERMS = [
+    "woman crying emotional close up",
+    "person walking alone rain",
+    "couple breaking up emotional",
+    "woman looking window sad",
+    "man emotional breakdown crying",
+    "person sitting alone night",
+    "emotional woman portrait tears",
+    "cinematic emotional people",
+    "lonely person dark room",
+    "woman thinking night window",
+    "sad man sitting alone",
+    "emotional couple distance",
+    "person crying bedroom",
     "melancholic woman portrait",
-    "person bedroom crying",
-    "sad eyes closeup",
-    "empty street night rain",
-    "hands letting go",
+    "heartbreak emotional scene",
 ]
 
 def load_cache():
@@ -27,100 +30,72 @@ def load_cache():
     return []
 
 def save_cache(cache):
-    Path("output").mkdir(exist_ok=True)
     with open(CACHE_PATH, "w") as f:
-        json.dump(cache[-100:], f, indent=2)
+        json.dump(cache[-50:], f, indent=2)
 
-def download_photos(output_dir, count):
+def download_background_video(output_path, duration):
     cache = load_cache()
-    headers = {"Authorization": PEXELS_API_KEY}
-    all_photos = []
+    all_videos = []
+    terms = random.sample(VIDEO_TERMS, min(3, len(VIDEO_TERMS)))
 
-    terms = random.sample(PHOTO_TERMS, min(4, len(PHOTO_TERMS)))
+    headers = {"Authorization": PEXELS_API_KEY}
     for term in terms:
-        print(f"🖼️ Suche Foto: '{term}'")
-        r = requests.get("https://api.pexels.com/v1/search", headers=headers,
-            params={"query": term, "orientation": "portrait", "per_page": 15})
+        print(f"🎬 Suche Video: '{term}'")
+        r = requests.get("https://api.pexels.com/videos/search", headers=headers,
+            params={"query": term, "orientation": "portrait", "size": "medium", "per_page": 15})
         if r.status_code == 200:
-            all_photos.extend(r.json().get("photos", []))
+            all_videos.extend(r.json().get("videos", []))
+
+    if not all_videos:
+        raise Exception("Keine Videos gefunden")
 
     # Duplikate entfernen
     seen_ids = set()
-    unique_photos = []
-    for p in all_photos:
-        if str(p["id"]) not in seen_ids:
-            seen_ids.add(str(p["id"]))
-            unique_photos.append(p)
+    unique_videos = []
+    for v in all_videos:
+        if str(v["id"]) not in seen_ids:
+            seen_ids.add(str(v["id"]))
+            unique_videos.append(v)
 
-    print(f"📦 {len(unique_photos)} einzigartige Fotos gefunden")
+    print(f"📦 {len(unique_videos)} einzigartige Videos gefunden")
 
     # Cache filtern
-    fresh_photos = [p for p in unique_photos if str(p["id"]) not in cache]
-    if not fresh_photos:
-        print("⚠️ Cache geleert")
+    fresh_videos = [v for v in unique_videos if str(v["id"]) not in cache]
+    if not fresh_videos:
+        print("⚠️ Alle Videos schon genutzt – Cache wird geleert")
         cache = []
-        fresh_photos = unique_photos
+        fresh_videos = unique_videos
 
-    # Zufällig auswählen
-    selected = random.sample(fresh_photos[:30], min(count, len(fresh_photos[:30])))
+    # Passende Länge filtern
+    suitable = [v for v in fresh_videos if v.get("duration", 0) >= duration]
+    if not suitable:
+        suitable = sorted(fresh_videos, key=lambda x: x.get("duration", 0), reverse=True)
+
+    # Zufällig aus Top 10 wählen
+    video = random.choice(suitable[:10])
 
     # Cache updaten
-    for p in selected:
-        cache.append(str(p["id"]))
+    cache.append(str(video["id"]))
     save_cache(cache)
 
-    # Fotos herunterladen
-    paths = []
-    Path(output_dir).mkdir(exist_ok=True)
-    for i, photo in enumerate(selected):
-        url = photo["src"]["large"]
-        path = f"{output_dir}/photo_{i:02d}.jpg"
-        resp = requests.get(url, stream=True)
-        with open(path, "wb") as f:
-            for chunk in resp.iter_content(chunk_size=8192):
-                f.write(chunk)
-        paths.append(path)
-        print(f"✅ Foto {i+1}/{len(selected)} gespeichert")
+    files = sorted(video["video_files"], key=lambda x: x.get("width", 0), reverse=True)
+    video_url = files[0]["link"]
+    print(f"⬇️ Lade Video (ID: {video['id']}, {video.get('duration')}s)...")
+    resp = requests.get(video_url, stream=True)
+    with open(output_path, "wb") as f:
+        for chunk in resp.iter_content(chunk_size=8192):
+            f.write(chunk)
+    print(f"✅ Hintergrundvideo: {output_path}")
+    return output_path
 
-    return paths
-
-def create_video(photo_dir, audio_path, output_path, duration):
-    print("🎞️ Erstelle Slideshow...")
-
-    photo_paths = sorted(Path(photo_dir).glob("photo_*.jpg"))
-    if not photo_paths:
-        raise Exception("Keine Fotos gefunden")
-
-    count = len(photo_paths)
-    seconds_per_photo = duration / count
-    print(f"📸 {count} Fotos, je {seconds_per_photo:.1f}s")
-
-    # Input args für alle Fotos
-    input_args = []
-    for p in photo_paths:
-        input_args += ["-loop", "1", "-t", str(seconds_per_photo), "-i", str(p)]
-
-    # Filter: scale + crop für jedes Bild, dann concat
-    filter_parts = []
-    for i in range(count):
-        filter_parts.append(
-            f"[{i}:v]scale=1080:1920:force_original_aspect_ratio=increase,"
-            f"crop=1080:1920,"
-            f"eq=brightness=-0.05:contrast=1.1,"
-            f"setsar=1,fps=25[v{i}]"
-        )
-
-    filter_str = ";".join(filter_parts)
-    concat_inputs = "".join([f"[v{i}]" for i in range(count)])
-    filter_str += f";{concat_inputs}concat=n={count}:v=1:a=0[outv]"
-
+def create_video(background_path, audio_path, output_path, duration):
+    print("🎞️ Erstelle finales Video...")
     cmd = [
         "ffmpeg", "-y",
-        *input_args,
+        "-stream_loop", "-1", "-i", background_path,
         "-i", audio_path,
-        "-filter_complex", filter_str,
-        "-map", "[outv]",
-        "-map", f"{count}:a",
+        "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=brightness=-0.05:contrast=1.1",
+        "-map", "0:v", "-map", "1:a",
         "-c:v", "libx264", "-preset", "fast", "-crf", "23",
         "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
         "-t", str(duration),
@@ -128,25 +103,21 @@ def create_video(photo_dir, audio_path, output_path, duration):
         "-pix_fmt", "yuv420p",
         output_path
     ]
-
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print(result.stderr[-3000:])
         raise Exception("FFmpeg fehlgeschlagen")
-
     size = Path(output_path).stat().st_size / (1024 * 1024)
-    print(f"✅ Slideshow: {output_path} ({size:.1f} MB)")
+    print(f"✅ Video: {output_path} ({size:.1f} MB)")
     return output_path
 
 if __name__ == "__main__":
     today = datetime.now().strftime("%Y-%m-%d")
     from generate_voice import get_audio_duration
     duration = get_audio_duration(f"output/voice_{today}.mp3")
-    count = max(5, int(duration / 4))
-    photo_dir = f"output/photos_{today}"
-    download_photos(photo_dir, count)
+    download_background_video(f"output/background_{today}.mp4", duration)
     create_video(
-        photo_dir,
+        f"output/background_{today}.mp4",
         f"output/voice_{today}.mp3",
         f"output/final_{today}.mp4",
         duration
