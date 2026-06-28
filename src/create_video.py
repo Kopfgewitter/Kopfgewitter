@@ -154,7 +154,6 @@ def create_thumbnail(video_path, output_path, hook_text):
     """Erstellt ein Cover-Bild aus dem ersten Frame + Hook Text"""
     print("🖼️ Erstelle Thumbnail...")
 
-    # Ersten Frame extrahieren
     frame_path = output_path.replace(".jpg", "_frame.jpg")
     cmd_frame = [
         "ffmpeg", "-y",
@@ -166,47 +165,60 @@ def create_thumbnail(video_path, output_path, hook_text):
     ]
     subprocess.run(cmd_frame, capture_output=True)
 
-    # Text vorbereiten — erste 2 Sätze als Titel
     lines = [l.strip() for l in hook_text.split("\n") if l.strip()]
-    title_lines = lines[:2]
+    hook_line = lines[0] if lines else "Kopfgewitter"
 
-    # Text escapen
+    words = hook_line.split()
+    if len(words) > 4:
+        mid = len(words) // 2
+        line1 = " ".join(words[:mid])
+        line2 = " ".join(words[mid:])
+    else:
+        line1 = hook_line
+        line2 = ""
+
     def escape(t):
-        return t.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
+        return t.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,").replace("💔", "").replace("🖤", "")
 
-    # Dunkles Overlay + Text drüber
     drawtext_filters = []
 
-    # Kopfgewitter Branding oben
+    drawtext_filters.append(
+        "drawbox=x=0:y=0:w=iw:h=ih:color=black@0.45:t=fill"
+    )
+
     drawtext_filters.append(
         f"drawtext=text='kopfgewitter'"
-        f":fontsize=38"
-        f":fontcolor=white@0.7"
+        f":fontsize=42"
+        f":fontcolor=white@0.6"
         f":font='Liberation Sans'"
         f":x=(w-text_w)/2"
-        f":y=120"
+        f":y=100"
     )
 
-    # Hook Text in der Mitte
-    y_start = 750
-    for i, line in enumerate(title_lines):
-        safe_line = escape(line)
+    drawtext_filters.append(
+        f"drawtext=text='{escape(line1)}'"
+        f":fontsize=82"
+        f":fontcolor=white"
+        f":font='Liberation Sans'"
+        f":borderw=5"
+        f":bordercolor=black"
+        f":x=(w-text_w)/2"
+        f":y=(h/2)-100"
+    )
+
+    if line2:
         drawtext_filters.append(
-            f"drawtext=text='{safe_line}'"
-            f":fontsize=58"
+            f"drawtext=text='{escape(line2)}'"
+            f":fontsize=82"
             f":fontcolor=white"
             f":font='Liberation Sans'"
-            f":borderw=4"
-            f":bordercolor=black@0.8"
+            f":borderw=5"
+            f":bordercolor=black"
             f":x=(w-text_w)/2"
-            f":y={y_start + i * 80}"
+            f":y=(h/2)+10"
         )
 
-    vf = (
-        f"eq=brightness=-0.15:contrast=1.1,"
-        f"drawbox=x=0:y=600:w=iw:h=400:color=black@0.5:t=fill,"
-        + ",".join(drawtext_filters)
-    )
+    vf = ",".join(drawtext_filters)
 
     cmd_thumb = [
         "ffmpeg", "-y",
@@ -265,7 +277,6 @@ def create_video(background_path, audio_path, output_path, duration, timestamps_
     size = Path(output_path).stat().st_size / (1024 * 1024)
     print(f"✅ Video: {output_path} ({size:.1f} MB)")
 
-    # Thumbnail erstellen
     if text_data:
         thumb_path = output_path.replace(".mp4", "_thumb.jpg")
         create_thumbnail(output_path, thumb_path, text_data.get("text", ""))
