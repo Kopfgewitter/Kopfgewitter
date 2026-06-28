@@ -20,7 +20,11 @@ final_path = f"output/final_{today}.mp4"
 create_video(bg_path, audio_path, final_path, duration, timestamps_path=timestamps_path)
 from post_tiktok import generate_caption, post_to_tiktok
 caption = generate_caption(text_data)
-result = post_to_tiktok(final_path, caption)
-with open(f"output/result_{today}.json", "w") as f:
-    json.dump(result, f, indent=2)
-print(f"✅ FERTIG! Publish ID: {result.get('publish_id', 'N/A')}")
+tiktok_result = post_to_tiktok(final_path, caption)
+with open(f"output/result_tiktok_{today}.json", "w") as f:
+    json.dump(tiktok_result, f, indent=2)
+from post_instagram import post_to_instagram
+instagram_result = post_to_instagram(final_path, caption)
+with open(f"output/result_instagram_{today}.json", "w") as f:
+    json.dump(instagram_result, f, indent=2)
+print(f"✅ FERTIG! TikTok: {tiktok_result.get('publish_id', 'N/A')} | Instagram: {instagram_result.get('media_id', 'N/A')}")
