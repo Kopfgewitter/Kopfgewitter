@@ -1,18 +1,40 @@
 import os, json, requests, time
+import cloudinary
+import cloudinary.uploader
 from datetime import datetime
 from pathlib import Path
 
 INSTAGRAM_ACCESS_TOKEN = os.environ["INSTAGRAM_ACCESS_TOKEN"]
 INSTAGRAM_ACCOUNT_ID = os.environ["INSTAGRAM_ACCOUNT_ID"]
 
+cloudinary.config(
+    cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
+    api_key=os.environ["CLOUDINARY_API_KEY"],
+    api_secret=os.environ["CLOUDINARY_API_SECRET"]
+)
+
+def upload_to_cloudinary(video_path):
+    print("☁️ Lade Video zu Cloudinary hoch...")
+    result = cloudinary.uploader.upload(
+        video_path,
+        resource_type="video",
+        folder="kopfgewitter",
+    )
+    url = result.get("secure_url")
+    print(f"✅ Cloudinary URL: {url}")
+    return url
+
 def post_to_instagram(video_path, caption):
     print("📤 Instagram Upload...")
+
+    # Video zu Cloudinary hochladen
+    video_url = upload_to_cloudinary(video_path)
 
     # Schritt 1: Container erstellen
     container_url = f"https://graph.instagram.com/v21.0/{INSTAGRAM_ACCOUNT_ID}/media"
     container_r = requests.post(container_url, data={
         "media_type": "REELS",
-        "video_url": video_path,
+        "video_url": video_url,
         "caption": caption,
         "share_to_feed": "true",
         "access_token": INSTAGRAM_ACCESS_TOKEN
