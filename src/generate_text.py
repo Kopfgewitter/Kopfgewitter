@@ -124,10 +124,30 @@ THEMEN_KATEGORIEN = {
 }
 
 HOOK_TYPEN = [
-    "Starte mit einem konkreten schmerzhaften Moment — keine Einleitung, direkt mittendrin",
-    "Beschreibe eine Situation die jeder kennt aber niemand ausspricht — so präzise dass es wehtut",
-    "Sage eine brutale Wahrheit in einem Satz die sofort trifft",
-    "Starte mit einer Handlung die Schmerz zeigt ohne das Wort Schmerz zu benutzen",
+    "Ein einziger Satz — so präzise dass der Zuschauer denkt du beschreibst sein Leben",
+    "Zeige eine Alltagshandlung die Schmerz ausdrückt — kein einziges emotionales Wort benutzen",
+    "Zwei Sätze die sich widersprechen — ein Gegensatz der sofort unter die Haut geht",
+    "Die eine Wahrheit die alle kennen aber niemand laut ausspricht — brutal kurz und direkt",
+    "Starte mitten in einem Moment — kein Kontext, keine Erklärung, sofort der Schmerz",
+]
+
+CTAS = [
+    "Schick das der Person die das gerade durchmacht. 💔",
+    "Markier die Person die das kennt.",
+    "Schick das jemandem der das nie sagen würde aber fühlt. 💔",
+    "Markier die Person die du gerade vermisst.",
+    "Schick das der Person die immer für alle da ist. 💔",
+    "Schreib 💔 wenn du weißt wie sich das anfühlt.",
+    "Kommentier 🖤 wenn dich das gerade trifft.",
+    "Schick das der Person die du nie vergessen konntest.",
+]
+
+FOLLOW_TRIGGER = [
+    "Folge uns — für alle die zu viel fühlen.",
+    "Kopfgewitter — wir sagen was du fühlst.",
+    "Folge uns wenn dich das getroffen hat.",
+    "Kopfgewitter — für die die nachts nicht schlafen können.",
+    "Folge uns. Hier wirst du verstanden. 🖤",
 ]
 
 def get_heutiges_thema():
@@ -139,36 +159,48 @@ def generate_text():
     client = anthropic.Anthropic()
     kategorie, thema = get_heutiges_thema()
     hook_typ = random.choice(HOOK_TYPEN)
+    cta = random.choice(CTAS)
+    follow_trigger = random.choice(FOLLOW_TRIGGER)
     today = datetime.now().strftime("%Y-%m-%d")
 
-    prompt = f"""Du bist Kopfgewitter — ein emotionaler deutscher TikTok-Account der Menschen trifft die zu viel fühlen und zu viel denken.
+    prompt = f"""Du bist Kopfgewitter — der emotionalste deutsche TikTok-Account für Menschen die zu viel fühlen und zu viel denken.
 
-Schreibe einen kurzen viralen TikTok-Text zum Thema: "{thema}"
+Thema: "{thema}"
 
-HOOK-PFLICHT — DIE ERSTE SEKUNDE ENTSCHEIDET:
-Hook-Stil: {hook_typ}
-Der allererste Satz muss so hart treffen dass man physisch aufhört zu scrollen.
-VERBOTEN: "Das wusstest du...", "Wusstest du dass...", "Heute reden wir über..."
-VERBOTEN: Lange Einleitungen — sofort ins Gefühl
+HOOK — ERSTE SEKUNDE ENTSCHEIDET ALLES:
+Stil: {hook_typ}
+Der erste Satz muss so hart treffen dass der Finger aufhört zu scrollen.
+VERBOTEN: "Das wusstest du..." / "Wusstest du dass..." / lange Einleitungen / erklärende Sätze
+PFLICHT: Sofort mitten im Schmerz — null Warm-up
+
+ERFOLGREICHE HOOK-BEISPIELE VON TOP ACCOUNTS:
+"dein verhalten hat alles kaputt gemacht."
+"Du warst nicht die Eine. Du warst die Pause zwischen zwei Kapiteln."
+"Du schreibst. Gelesen. Keine Antwort."
+"Du gibst Ozean. Und bekommst Pfützen zurück."
+"3 Uhr nachts. Alle schlafen. Nur du nicht."
+"Er liebt dich nicht. 💔"
 
 STRUKTUR:
-1. Hook (1-2 Sätze) — sofort der Schmerz, kein Warm-up
-2. Aufbau (3-4 Sätze) — die Wunde vertiefen, Bilder die jeder kennt
-3. Abschlusssatz — der hängen bleibt, kurz und brutal ehrlich
-4. Ein CTA — Share-Trigger ODER Kommentar-Trigger, nie beides
+1. Hook (1 Satz) — sofort der härteste Moment, null Kontext
+2. Aufbau (3-4 Sätze) — konkrete Alltagsbilder die jeder kennt, Wunde vertiefen
+3. Wendepunkt (1 Satz) — die brutalste Wahrheit oder die Erkenntnis die wehtut
+4. CTA: "{cta}"
+5. Follow: "{follow_trigger}"
 
-BEISPIEL GUTER HOOK:
-"Du schreibst. Gelesen. Keine Antwort."
-"Dein Körper liegt still. Dein Kopf rennt Marathon."
-"Du gibst alles. Und bekommst Krümel zurück."
+POLARISIERUNGS-REGELN:
+- Jeder Satz löst eine eigene Emotion aus
+- Kein Satz darf austauschbar sein
+- Beim zweiten Lesen trifft es noch härter
+- Konkret schreiben — niemals abstrakt
+- 1-2 Emojis erlaubt — nur 💔 oder 🖤, nie mehr
 
-REGELN:
-- 55-70 Wörter (20-25 Sekunden)
+TECHNISCHE REGELN:
+- 55-70 Wörter gesamt
 - Max 6 Wörter pro Satz
-- Immer "du/dich" — niemals "man"
+- Nur "du/dich" — niemals "man"
 - Jeder Satz eine eigene Zeile
-- Kein Hashtag, kein "Folge Kopfgewitter"
-- Jedes Wort muss sitzen — nichts ist zufällig
+- Kein Hashtag
 
 Gib NUR den fertigen Text zurück."""
 
