@@ -30,25 +30,8 @@ def post_to_instagram(video_path, caption, video_url=None):
     if not video_url:
         video_url = upload_to_cloudinary(video_path)
 
-    # Schritt 1: Instagram Business Account ID holen über Facebook Seite
-    page_url = f"https://graph.facebook.com/v21.0/{INSTAGRAM_ACCOUNT_ID}"
-    page_r = requests.get(page_url, params={
-        "fields": "instagram_business_account",
-        "access_token": INSTAGRAM_ACCESS_TOKEN
-    })
-
-    if page_r.status_code != 200:
-        raise Exception(f"Seiten-Fehler {page_r.status_code}: {page_r.text}")
-
-    ig_account = page_r.json().get("instagram_business_account")
-    if not ig_account:
-        raise Exception("Kein Instagram Business Account mit dieser Facebook Seite verknüpft")
-
-    ig_id = ig_account["id"]
-    print(f"✅ Instagram Business ID: {ig_id}")
-
-    # Schritt 2: Container erstellen
-    container_url = f"https://graph.facebook.com/v21.0/{ig_id}/media"
+    # Container erstellen
+    container_url = f"https://graph.facebook.com/v21.0/{INSTAGRAM_ACCOUNT_ID}/media"
     container_r = requests.post(container_url, data={
         "media_type": "REELS",
         "video_url": video_url,
@@ -58,12 +41,12 @@ def post_to_instagram(video_path, caption, video_url=None):
     })
 
     if container_r.status_code != 200:
-        raise Exception(f"Container Fehler {container_r.status_code}: {container_r.text}")
+        raise Exception(f"Instagram Container Fehler {container_r.status_code}: {container_r.text}")
 
     container_id = container_r.json().get("id")
     print(f"✅ Container erstellt (ID: {container_id})")
 
-    # Schritt 3: Warten bis verarbeitet
+    # Warten bis verarbeitet
     print("⏳ Warte auf Verarbeitung...")
     for attempt in range(20):
         time.sleep(10)
@@ -80,15 +63,15 @@ def post_to_instagram(video_path, caption, video_url=None):
             elif status == "ERROR":
                 raise Exception("Instagram Verarbeitungsfehler")
 
-    # Schritt 4: Veröffentlichen
-    publish_url = f"https://graph.facebook.com/v21.0/{ig_id}/media_publish"
+    # Veröffentlichen
+    publish_url = f"https://graph.facebook.com/v21.0/{INSTAGRAM_ACCOUNT_ID}/media_publish"
     publish_r = requests.post(publish_url, data={
         "creation_id": container_id,
         "access_token": INSTAGRAM_ACCESS_TOKEN
     })
 
     if publish_r.status_code != 200:
-        raise Exception(f"Publish Fehler {publish_r.status_code}: {publish_r.text}")
+        raise Exception(f"Instagram Publish Fehler {publish_r.status_code}: {publish_r.text}")
 
     media_id = publish_r.json().get("id")
     print(f"🎉 Erfolgreich auf Instagram veröffentlicht! (ID: {media_id})")
