@@ -6,23 +6,28 @@ PEXELS_API_KEY = os.environ["PEXELS_API_KEY"]
 PIXABAY_API_KEY = os.environ["PIXABAY_API_KEY"]
 CACHE_PATH = "used_videos.json"
 
-VIDEO_TERMS = [
-    "woman crying emotional",
-    "person walking alone rain",
-    "couple breaking up emotional",
-    "woman looking window sad",
-    "man emotional breakdown",
-    "person sitting alone night",
-    "emotional woman portrait",
-    "cinematic emotional people",
-    "lonely person dark room",
-    "woman thinking night window",
-    "sad man sitting alone",
-    "emotional couple distance",
-    "person crying bedroom",
-    "melancholic woman portrait",
-    "heartbreak emotional scene",
-]
+VIDEO_TERMS = {
+    "herzschmerz": [
+        "couple breaking up emotional", "heartbreak sad woman", "crying woman bedroom",
+        "emotional breakup scene", "woman tears night", "broken heart sad person"
+    ],
+    "einsamkeit": [
+        "person sitting alone night", "lonely person dark room", "woman looking window sad",
+        "man alone city night", "empty room lonely", "person alone bench night"
+    ],
+    "sehnsucht": [
+        "woman thinking night window", "melancholic woman portrait", "person staring distance",
+        "sad woman rain window", "longing emotional woman", "dreaming person night"
+    ],
+    "gedanken": [
+        "person overthinking stress", "woman emotional breakdown", "man emotional breakdown",
+        "cinematic emotional people", "person head hands stressed", "thinking person dark"
+    ],
+    "trauer": [
+        "person crying emotional", "woman crying emotional", "sad man sitting alone",
+        "emotional couple distance", "person crying rain", "grief emotional scene"
+    ],
+}
 
 def load_cache():
     if Path(CACHE_PATH).exists():
@@ -79,9 +84,12 @@ def download_background_video(output_path, duration):
     cache = load_cache()
     all_videos = []
 
-    terms = random.sample(VIDEO_TERMS, min(3, len(VIDEO_TERMS)))
+    # Zufällige Kategorie wählen, dann 3 Keywords daraus
+    category = random.choice(list(VIDEO_TERMS.keys()))
+    terms = random.sample(VIDEO_TERMS[category], min(3, len(VIDEO_TERMS[category])))
+
     for term in terms:
-        print(f"🎬 Suche Video: '{term}'")
+        print(f"🎬 Suche Video [{category}]: '{term}'")
         all_videos.extend(fetch_pexels(term, duration))
         all_videos.extend(fetch_pixabay(term, duration))
 
@@ -151,7 +159,6 @@ def build_subtitle_filter(timestamps, total_duration, fontsize=52):
     return ",".join(filters)
 
 def create_thumbnail(video_path, output_path, hook_text):
-    """Erstellt ein Cover-Bild aus dem ersten Frame + Hook Text"""
     print("🖼️ Erstelle Thumbnail...")
 
     frame_path = output_path.replace(".jpg", "_frame.jpg")
