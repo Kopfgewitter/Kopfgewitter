@@ -1,12 +1,14 @@
 name: Taegliches Kopfgewitter Video
 on:
   schedule:
-    - cron: '0 16 * * *'
+    - cron: '0 5 * * *'   # 07:00 CEST – Morgens
+    - cron: '0 10 * * *'  # 12:00 CEST – Mittagspause
+    - cron: '0 18 * * *'  # 20:00 CEST – Abend (stärkster Slot)
   workflow_dispatch:
 jobs:
   create-and-post:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Code auschecken
         uses: actions/checkout@v4
@@ -28,12 +30,14 @@ jobs:
           ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
-          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
           WATERMARK_TEXT: "Kopfgewitter"
         run: python main.py
         continue-on-error: true
