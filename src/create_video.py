@@ -122,11 +122,18 @@ def download_background_video(output_path, duration):
     print(f"✅ Hintergrundvideo: {output_path}")
     return output_path
 
+def clean_text_for_ffmpeg(text):
+    """Entfernt alle Emojis und Sonderzeichen die FFmpeg nicht verarbeiten kann."""
+    text = text.replace("💔", "").replace("🖤", "").replace("❤️", "")
+    text = text.replace("\u200d", "").replace("\ufe0f", "").replace("\u2764", "")
+    text = text.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
+    text = text.strip()
+    return text
+
 def build_visual_hook(hook_text, hook_duration=4.0):
     """Erster Satz groß oben im Bild – bleibt 4 Sekunden sichtbar.
     Untertitel laufen gleichzeitig unten normal weiter."""
-    safe = hook_text.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
-    safe = safe.replace("💔", "").replace("🖤", "").replace("❤️", "")
+    safe = clean_text_for_ffmpeg(hook_text)
 
     words = safe.split()
     if len(words) > 5:
@@ -166,7 +173,6 @@ def build_visual_hook(hook_text, hook_duration=4.0):
             f":enable='between(t,0,{hook_duration})'"
         )
 
-    # Dunkles Overlay nur im Hook-Bereich oben
     overlay = (
         f"drawbox=x=0:y=(h*0.12):w=iw:h=220"
         f":color=black@0.5:t=fill"
@@ -192,8 +198,7 @@ def build_subtitle_filter(timestamps, total_duration, fontsize=52):
         else:
             end = total_duration
 
-        safe_text = text.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
-        safe_text = safe_text.replace("💔", "").replace("🖤", "").replace("❤️", "")
+        safe_text = clean_text_for_ffmpeg(text)
 
         if len(safe_text) > 30:
             words = safe_text.split()
@@ -241,7 +246,10 @@ def create_thumbnail(video_path, output_path, hook_text):
         line2 = ""
 
     def escape(t):
-        return t.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,").replace("💔", "").replace("🖤", "").replace("❤️", "")
+        t = t.replace("💔", "").replace("🖤", "").replace("❤️", "")
+        t = t.replace("\u200d", "").replace("\ufe0f", "").replace("\u2764", "")
+        t = t.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
+        return t.strip()
 
     drawtext_filters = []
 
@@ -311,7 +319,6 @@ def create_video(background_path, audio_path, output_path, duration, timestamps_
 
     vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=brightness=-0.05:contrast=1.1"
 
-    # Visueller Hook – erster Satz 4 Sekunden oben, gleichzeitig Untertitel unten
     hook_duration = 4.0
     if timestamps and len(timestamps) > 0:
         hook_text = timestamps[0]["text"]
@@ -319,7 +326,6 @@ def create_video(background_path, audio_path, output_path, duration, timestamps_
         vf += "," + hook_filter
         print(f"✅ Visueller Hook ({hook_duration}s): '{hook_text[:40]}'")
 
-    # Untertitel laufen normal durch – auch während Hook sichtbar
     if timestamps:
         subtitle_filter = build_subtitle_filter(timestamps, duration)
         vf += "," + subtitle_filter
