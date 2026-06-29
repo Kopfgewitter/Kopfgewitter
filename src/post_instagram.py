@@ -31,7 +31,7 @@ def post_to_instagram(video_path, caption, video_url=None):
         video_url = upload_to_cloudinary(video_path)
 
     # Container erstellen
-    container_url = f"https://graph.facebook.com/v21.0/{INSTAGRAM_ACCOUNT_ID}/media"
+    container_url = f"https://graph.instagram.com/v21.0/{INSTAGRAM_ACCOUNT_ID}/media"
     container_r = requests.post(container_url, data={
         "media_type": "REELS",
         "video_url": video_url,
@@ -50,7 +50,7 @@ def post_to_instagram(video_path, caption, video_url=None):
     print("⏳ Warte auf Verarbeitung...")
     for attempt in range(20):
         time.sleep(10)
-        status_url = f"https://graph.facebook.com/v21.0/{container_id}"
+        status_url = f"https://graph.instagram.com/v21.0/{container_id}"
         status_r = requests.get(status_url, params={
             "fields": "status_code",
             "access_token": INSTAGRAM_ACCESS_TOKEN
@@ -64,7 +64,7 @@ def post_to_instagram(video_path, caption, video_url=None):
                 raise Exception("Instagram Verarbeitungsfehler")
 
     # Veröffentlichen
-    publish_url = f"https://graph.facebook.com/v21.0/{INSTAGRAM_ACCOUNT_ID}/media_publish"
+    publish_url = f"https://graph.instagram.com/v21.0/{INSTAGRAM_ACCOUNT_ID}/media_publish"
     publish_r = requests.post(publish_url, data={
         "creation_id": container_id,
         "access_token": INSTAGRAM_ACCESS_TOKEN
