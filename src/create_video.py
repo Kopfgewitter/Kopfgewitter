@@ -84,7 +84,6 @@ def download_background_video(output_path, duration):
     cache = load_cache()
     all_videos = []
 
-    # Zufällige Kategorie wählen, dann 3 Keywords daraus
     category = random.choice(list(VIDEO_TERMS.keys()))
     terms = random.sample(VIDEO_TERMS[category], min(3, len(VIDEO_TERMS[category])))
 
@@ -123,13 +122,68 @@ def download_background_video(output_path, duration):
     print(f"✅ Hintergrundvideo: {output_path}")
     return output_path
 
+def build_visual_hook(hook_text, hook_duration=4.0):
+    """Erster Satz groß oben im Bild – bleibt 4 Sekunden sichtbar.
+    Untertitel laufen gleichzeitig unten normal weiter."""
+    safe = hook_text.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
+    safe = safe.replace("💔", "").replace("🖤", "").replace("❤️", "")
+
+    words = safe.split()
+    if len(words) > 5:
+        mid = len(words) // 2
+        line1 = " ".join(words[:mid])
+        line2 = " ".join(words[mid:])
+        text_filter = (
+            f"drawtext=text='{line1}'"
+            f":fontsize=76"
+            f":fontcolor=white"
+            f":font='Liberation Sans'"
+            f":borderw=6"
+            f":bordercolor=black"
+            f":x=(w-text_w)/2"
+            f":y=(h*0.18)"
+            f":enable='between(t,0,{hook_duration})',"
+            f"drawtext=text='{line2}'"
+            f":fontsize=76"
+            f":fontcolor=white"
+            f":font='Liberation Sans'"
+            f":borderw=6"
+            f":bordercolor=black"
+            f":x=(w-text_w)/2"
+            f":y=(h*0.18)+90"
+            f":enable='between(t,0,{hook_duration})'"
+        )
+    else:
+        text_filter = (
+            f"drawtext=text='{safe}'"
+            f":fontsize=82"
+            f":fontcolor=white"
+            f":font='Liberation Sans'"
+            f":borderw=6"
+            f":bordercolor=black"
+            f":x=(w-text_w)/2"
+            f":y=(h*0.18)"
+            f":enable='between(t,0,{hook_duration})'"
+        )
+
+    # Dunkles Overlay nur im Hook-Bereich oben
+    overlay = (
+        f"drawbox=x=0:y=(h*0.12):w=iw:h=220"
+        f":color=black@0.5:t=fill"
+        f":enable='between(t,0,{hook_duration})'"
+    )
+
+    return overlay + "," + text_filter
+
 def build_subtitle_filter(timestamps, total_duration, fontsize=52):
+    """Untertitel laufen unten – gleichzeitig mit dem visuellen Hook."""
     filters = []
     for i, entry in enumerate(timestamps):
         text = entry["text"]
         start = entry.get("start")
         if start is None:
             start = (i / len(timestamps)) * total_duration
+
         if i + 1 < len(timestamps):
             next_start = timestamps[i + 1].get("start")
             if next_start is None:
@@ -139,6 +193,8 @@ def build_subtitle_filter(timestamps, total_duration, fontsize=52):
             end = total_duration
 
         safe_text = text.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
+        safe_text = safe_text.replace("💔", "").replace("🖤", "").replace("❤️", "")
+
         if len(safe_text) > 30:
             words = safe_text.split()
             mid = len(words) // 2
@@ -185,7 +241,7 @@ def create_thumbnail(video_path, output_path, hook_text):
         line2 = ""
 
     def escape(t):
-        return t.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,").replace("💔", "").replace("🖤", "")
+        return t.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,").replace("💔", "").replace("🖤", "").replace("❤️", "")
 
     drawtext_filters = []
 
@@ -255,6 +311,15 @@ def create_video(background_path, audio_path, output_path, duration, timestamps_
 
     vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=brightness=-0.05:contrast=1.1"
 
+    # Visueller Hook – erster Satz 4 Sekunden oben, gleichzeitig Untertitel unten
+    hook_duration = 4.0
+    if timestamps and len(timestamps) > 0:
+        hook_text = timestamps[0]["text"]
+        hook_filter = build_visual_hook(hook_text, hook_duration)
+        vf += "," + hook_filter
+        print(f"✅ Visueller Hook ({hook_duration}s): '{hook_text[:40]}'")
+
+    # Untertitel laufen normal durch – auch während Hook sichtbar
     if timestamps:
         subtitle_filter = build_subtitle_filter(timestamps, duration)
         vf += "," + subtitle_filter
