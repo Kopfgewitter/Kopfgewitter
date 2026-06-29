@@ -26,15 +26,18 @@ download_background_video(bg_path, duration)
 final_path = f"output/final_{today}.mp4"
 create_video(bg_path, audio_path, final_path, duration, timestamps_path=timestamps_path, text_data=text_data)
 
-# 4. Zu Cloudinary hochladen
+# 4. Caption generieren (ohne TikTok Token abhängigkeit)
+from post_tiktok import KATEGORIE_HASHTAGS
+kategorie = text_data.get("kategorie", "")
+hashtags = KATEGORIE_HASHTAGS.get(kategorie, "#liebeskummer #herzschmerz #zitate #gefühle #wahreworte")
+caption = f"{text_data['text']}\n\n{hashtags}"
+caption = caption[:2200]
+
+# 5. Zu Cloudinary hochladen
 from post_instagram import upload_to_cloudinary
 video_url = upload_to_cloudinary(final_path)
 
-# 5. Caption generieren
-from post_tiktok import generate_caption
-caption = generate_caption(text_data)
-
-# 6. E-Mail schicken – TikTok manuell posten
+# 6. E-Mail schicken – SOFORT nach Cloudinary, vor allem anderen
 from notify_email import send_notification
 send_notification(text_data, video_url, caption)
 print("⏳ Warte 15 Minuten vor Instagram-Post...")
