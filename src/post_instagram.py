@@ -24,13 +24,12 @@ def upload_to_cloudinary(video_path):
     print(f"✅ Cloudinary URL: {url}")
     return url
 
-def post_to_instagram(video_path, caption):
+def post_to_instagram(video_path, caption, video_url=None):
     print("📤 Instagram Upload...")
 
-    # Video zu Cloudinary hochladen
-    video_url = upload_to_cloudinary(video_path)
+    if not video_url:
+        video_url = upload_to_cloudinary(video_path)
 
-    # Schritt 1: Container erstellen
     container_url = f"https://graph.instagram.com/v21.0/{INSTAGRAM_ACCOUNT_ID}/media"
     container_r = requests.post(container_url, data={
         "media_type": "REELS",
@@ -46,7 +45,6 @@ def post_to_instagram(video_path, caption):
     container_id = container_r.json().get("id")
     print(f"✅ Container erstellt (ID: {container_id})")
 
-    # Schritt 2: Warten bis Video verarbeitet
     print("⏳ Warte auf Verarbeitung...")
     for attempt in range(20):
         time.sleep(10)
@@ -63,7 +61,6 @@ def post_to_instagram(video_path, caption):
             elif status == "ERROR":
                 raise Exception("Instagram Verarbeitungsfehler")
 
-    # Schritt 3: Veröffentlichen
     publish_url = f"https://graph.instagram.com/v21.0/{INSTAGRAM_ACCOUNT_ID}/media_publish"
     publish_r = requests.post(publish_url, data={
         "creation_id": container_id,
@@ -76,12 +73,3 @@ def post_to_instagram(video_path, caption):
     media_id = publish_r.json().get("id")
     print(f"🎉 Erfolgreich auf Instagram veröffentlicht! (ID: {media_id})")
     return {"success": True, "media_id": media_id}
-
-if __name__ == "__main__":
-    today = datetime.now().strftime("%Y-%m-%d")
-    with open(f"output/text_{today}.json", encoding="utf-8") as f:
-        data = json.load(f)
-    from post_tiktok import generate_caption
-    caption = generate_caption(data)
-    result = post_to_instagram(f"output/final_{today}.mp4", caption)
-    print(result)
