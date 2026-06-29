@@ -2,7 +2,7 @@ import os, json, requests, time
 from datetime import datetime
 from pathlib import Path
 
-TIKTOK_ACCESS_TOKEN = os.environ["TIKTOK_ACCESS_TOKEN"]
+TIKTOK_ACCESS_TOKEN = os.environ.get("TIKTOK_ACCESS_TOKEN", "")
 
 KATEGORIE_HASHTAGS = {
     "einseitige_liebe":            "#liebeskummer #herzschmerz #zitate #wahreworte #gefühle",
